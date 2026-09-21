@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.compose import ColumnTransformer
@@ -196,3 +197,7 @@ nuevo_barco = {
 
 precio_predicho = predecir_precio_barco(nuevo_barco, best_model)
 print(f"El precio estimado para el barco ingresado es: ${precio_predicho:,.2f}")
+
+# Guardamos el modelo optimizado en un archivo físico
+joblib.dump(best_model, 'modelo_barcos.joblib')
+print("¡Modelo guardado exitosamente como 'modelo_barcos.joblib'!")

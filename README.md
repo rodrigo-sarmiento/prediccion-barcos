@@ -1,122 +1,119 @@
-# Prediccion de precios de embarcaciones
+# **⛵ Predicción de Precios de Embarcaciones**
 
-Modelo de estudio para la carrera de **Ciencia de Datos e Inteligencia Artificial** del **Instituto Superior de Formacion Docente y Tecnica N.° 57 de la ciudad de Chascomus**.
+### **Guía Pedagógica y Documentación de Proyecto**
 
-El proyecto aplica un pipeline de aprendizaje automatico para estimar el precio de una embarcacion a partir de sus caracteristicas tecnicas, comerciales y de ubicacion.
+**Carrera:** Ciencia de Datos e Inteligencia Artificial — **ISFDyT N.° 57 (Chascomús)**
 
-> Proyecto educativo y experimental. Las predicciones no deben interpretarse como una tasacion profesional ni como una recomendacion de compra o venta.
+## ---
 
-## Objetivos
+**📌 1\. Introducción y Objetivo del Proyecto**
 
-- Practicar limpieza y preparacion de datos.
-- Crear variables derivadas, como la antiguedad del barco y del motor.
-- Comparar un modelo baseline con un modelo de gradient boosting.
-- Optimizar hiperparametros mediante validacion cruzada.
-- Evaluar el modelo con RMSE, MAE y R2.
-- Realizar inferencias para nuevos registros.
+Modelo de estudio para la carrera de Ciencia de Datos e Inteligencia Artificial del Instituto Superior de Formación Docente y Tecnica N.° 57 de la ciudad de Chascomús.
 
-## Estructura
+Este modelo aborda un problema clásico de Aprendizaje Automático Supervisado en la categoría de **Regresión**: estimar el valor comercial continuo (en dólares) de una embarcación a partir de sus atributos técnicos (eslora, potencia, tipo de casco), comerciales (estado, marca, año) y geográficos (ciudad, estado).  
+En lugar de definir reglas manuales fijas para tasar un barco, construimos un **Pipeline End-to-End** que:
 
-```text
-.
-├── Boats_Cleaned_dataset.csv   # Dataset utilizado para entrenar y evaluar
-├── pipeline_barcos.py          # Pipeline completo de entrenamiento e inferencia
-└── README.md
-```
+> 1. Aprende patrones matemáticos a partir de un histórico de datos real.  
+> 2. Evalúa objetivamente su margen de error.  
+> 3. Se guarda en disco (**persistencia**) para hacer predicciones en tiempo real mediante una interfaz web interactiva (**inferencia**).
 
-## Flujo del pipeline
+## **📂 2\. Estructura del Proyecto**
 
-1. Carga `Boats_Cleaned_dataset.csv`.
-2. Elimina una posible columna tecnica de indice.
-3. Filtra valores extremos del precio entre los percentiles 1 y 99.
-4. Genera `boat_age` y `engine_age_diff` usando 2026 como ano de referencia.
-5. Separa los datos en entrenamiento y prueba con una proporcion 80/20.
-6. Imputa y estandariza variables numericas.
-7. Aplica one-hot encoding a variables categoricas de baja cardinalidad.
-8. Aplica target encoding a variables categoricas de alta cardinalidad.
-9. Entrena un Random Forest como baseline.
-10. Busca la mejor configuracion de `HistGradientBoostingRegressor` con `GridSearchCV`.
-11. Imprime las metricas y muestra graficos de valores reales contra predichos y residuos.
-12. Expone `predecir_precio_barco` para estimar el precio de un nuevo barco.
+`prediccion_barcos/`  
+`├── Boats_Cleaned_dataset.csv   # Dataset histórico con registros de embarcaciones`  
+`├── pipeline_barcos.py          # Script principal: Limpieza, entrenamiento, evaluación y guardado`  
+`├── modelo_barcos.joblib        # Archivo binario con el modelo entrenado y listo para usar`  
+`├── app.py                      # Aplicación web interactiva (Streamlit) para consultas de usuarios`  
+`└── README.md                   # Documentación didáctica del proyecto`
 
-## Requisitos
+## **🧠 3\. Flujo del Pipeline Explicado Paso a Paso**
 
-- Python 3.10 o superior recomendado.
-- Dependencias:
+### **Paso 1: Carga y Limpieza de Datos**
 
-```text
-pandas
-numpy
-matplotlib
-seaborn
-scikit-learn
-```
+> * **Eliminación de índices redundantes:** Se descartan columnas como Unnamed: 0 que no aportan valor predictivo.  
+> * **Filtrado de valores extremos (Outliers):** Se acotan los precios entre el percentil 1 (q0.01) y el percentil 99 (q0.99).  
+>   *¿Por qué hacemos esto?* Barcos con precio $0 (errores de carga) o yates de super lujo distorsionan la escala y confunden al algoritmo durante el aprendizaje.
 
-## Instalacion y ejecucion
+### **Paso 2: Ingeniería de Características (Feature Engineering)**
 
-Crear y activar un entorno virtual:
+Transformamos datos existentes para crear señales con mayor poder explicativo:
 
-```bash
-python -m venv venv
-```
+> * **boat\_age (Antigüedad del barco):** 2026 \- año de fabricación.  
+> * **engine\_age\_diff (Diferencia de antigüedad del motor):** 2026 \- año del motor.
 
-En Windows PowerShell:
+*Explicación pedagógica:* Para un modelo numérico es mucho más fácil interpretar "10 años de uso" que procesar el año "2016" como un número arbitrario.
 
-```powershell
-.\venv\Scripts\Activate.ps1
-```
+### **Paso 3: División de Datos (Train / Test Split)**
 
-En Linux o macOS:
+> * **80% Entrenamiento (X\_train, y\_train):** El "material de estudio" donde el modelo aprende las relaciones.  
+> * **20% Prueba (X\_test, y\_test):** El "examen final" con datos nunca antes vistos para medir el rendimiento real.
 
-```bash
-source venv/bin/activate
-```
+### **Paso 4: Preprocesamiento con ColumnTransformer**
 
-Instalar dependencias:
+> 1. **Variables Numéricas:**  
+   * Imputación por Mediana.  
+   * Estandarización (Z-score).  
+> 2. **Categorías de Baja Cardinalidad:** One-Hot Encoding.  
+> 3. **Categorías de Alta Cardinalidad:** Target Encoding.
 
-```bash
-pip install pandas numpy matplotlib seaborn scikit-learn
-```
+### **Paso 5: Entrenamiento y Optimización (GridSearchCV)**
 
-Ejecutar el pipeline desde la raiz del proyecto:
+> * **Baseline (Referencia):** RandomForestRegressor.  
+> * **Modelo Avanzado:** HistGradientBoostingRegressor.  
+> * **Búsqueda en Malla (GridSearchCV):** Evalúa combinaciones de hiperparámetros con Validación Cruzada (k=3).
 
-```bash
-python pipeline_barcos.py
-```
+### **Paso 6: Evaluación Gráfica**
 
-El script imprime las metricas de entrenamiento y prueba, abre las visualizaciones y calcula una prediccion de ejemplo.
+> * **Valores Reales vs. Predichos:** Muestra qué tan alineadas están las predicciones.  
+> * **Distribución de Residuos:** Visualiza los errores de predicción.
 
-## Variables utilizadas
+### **Paso 7: Persistencia del Modelo (Guardado)**
 
-El objetivo es `price`. Entre las variables predictoras se incluyen:
+Mediante la librería joblib, guardamos en modelo\_barcos.joblib todo el objeto entrenado.
 
-- Tipo, clase, marca y modelo.
-- Ano y condicion de la embarcacion.
-- Eslora, manga y peso en seco.
-- Cantidad de motores y potencia total.
-- Ano minimo y maximo de motor.
-- Material del casco y tipo de combustible.
-- Ciudad y estado.
+### **Paso 8: Inferencia en Tiempo Real (Interfaz Web con Streamlit)**
 
-Por evitar fuga de informacion o variables administrativas, el pipeline descarta identificadores, codigo postal y campos derivados de la fecha de publicacion.
+La aplicación app.py carga modelo\_barcos.joblib y expone un formulario visual para hacer predicciones al instante.
 
-## Metricas
+## **📐 4\. Acotación de Fórmulas Matemáticas Clave**
 
-El modelo se evalua con:
+### **1\. Error Absoluto Medio (MAE)**
 
-- **RMSE**: penaliza especialmente los errores grandes.
-- **MAE**: representa el error absoluto medio en unidades de precio.
-- **R2**: indica la proporcion de variabilidad explicada por el modelo.
+**Fórmula:** MAE \= (1 / n) \* Σ |yi \- ŷi|  
+Mide el promedio simple del margen de error en dólares (USD).
 
-Los resultados pueden cambiar al modificar el dataset, la version de las librerias o los parametros del entrenamiento.
+### **2\. Raíz del Error Cuadrático Medio (RMSE)**
 
-## Limitaciones y proximos pasos
+**Fórmula:** RMSE \= √\[ (1 / n) \* Σ (yi \- ŷi)² \]  
+Penaliza fuertemente los grandes errores al elevarlos al cuadrado.
 
-- El ano de referencia esta fijado en 2026 y deberia parametrizarse para futuros usos.
-- No se guarda un modelo entrenado; el entrenamiento se repite en cada ejecucion.
-- Se puede agregar persistencia del modelo, validacion mas robusta, analisis de importancia de variables y una interfaz web o dashboard.
-- Antes de usarlo fuera del contexto academico, conviene revisar sesgos, calidad de datos y representatividad del mercado.
+### **3\. Coeficiente de Determinación (R²)**
 
-## Autor y contexto academico
+**Fórmula:** R² \= 1 \- \[ Σ (yi \- ŷi)² / Σ (yi \- ȳ)² \]  
+Indica la proporción de la variabilidad del precio explicada por el modelo.
 
-Trabajo practico desarrollado como modelo de estudio para la carrera de Ciencia de Datos e Inteligencia Artificial del Instituto 57 de Chascomus.
+### **4\. Estandarización de Variables (Z-Score)**
+
+**Fórmula:** z \= (x \- μ) / σ  
+Transforma los datos para que tengan media 0 y desviación estándar 1\.
+
+## **🛠️ 5\. Guía de Instalación y Ejecución**
+
+`# 1. Crear y activar entorno virtual`  
+`python -m venv venv`  
+`.\venv\Scripts\Activate.ps1  # Windows`
+
+`# 2. Instalar librerías`  
+`pip install pandas numpy matplotlib seaborn scikit-learn streamlit joblib`
+
+`# 3. Entrenar y guardar el modelo`  
+`python pipeline_barcos.py`
+
+`# 4. Lanzar la aplicación interactiva`  
+`streamlit run app.py`
+
+## **🚀 6\. Próximos Pasos Sugeridos para Estudiantes**
+
+> * Parametrizar el año de referencia dinámicamente.  
+> * Analizar la importancia relativa de variables (Feature Importance).  
+> * Desplegar la aplicación web en Streamlit Community Cloud.
