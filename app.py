@@ -45,24 +45,28 @@ with col3:
     totalHP = st.number_input("Potencia Total (HP)", min_value=0.0, value=300.0)
     engineCategory = st.selectbox("Categoría de Motor", ["inboard", "outboard-4s", "outboard-2s"])
     fuelType = st.selectbox("Combustible", ["gasoline", "diesel", "other"])
-    minEngineYear = st.number_input("Año Min. Motor", min_value=1900, max_value=2026, value=2015)
-    maxEngineYear = st.number_input("Año Max. Motor", min_value=1900, max_value=2026, value=2015)
-
+    # Único dato para el año del motor
+    engine_year = st.number_input("Año del Motor", min_value=1900, max_value=2026, value=2015)
+    
 # 4. Botón de Inferencia
 if st.button("Estimar Precio", type="primary"):
-    # Empaquetamos los datos en un diccionario, igual que en tu script original
     datos_ingresados = {
         'type': type_boat, 'boatClass': boatClass, 'make': make, 'model': model,
         'year': year, 'condition': condition, 'length_ft': length_ft, 'beam_ft': beam_ft,
         'dryWeight_lb': dryWeight_lb, 'hullMaterial': hullMaterial, 'fuelType': fuelType,
-        'numEngines': numEngines, 'totalHP': totalHP, 'maxEngineYear': maxEngineYear,
-        'minEngineYear': minEngineYear, 'engineCategory': engineCategory,
-        'city': city, 'state': state
+        'numEngines': numEngines, 'totalHP': totalHP, 'engine_year': engine_year,
+        'engineCategory': engineCategory, 'city': city, 'state': state
     }
     
-    # Creamos el DataFrame
     df_nuevo = pd.DataFrame([datos_ingresados])
     
+    CURRENT_YEAR = 2026
+    df_nuevo['boat_age'] = CURRENT_YEAR - df_nuevo['year']
+    df_nuevo['engine_age_diff'] = CURRENT_YEAR - df_nuevo['engine_year']
+    
+    precio_estimado = modelo.predict(df_nuevo)[0]
+    
+    st.success(f"### Precio Estimado: USD {precio_estimado:,.2f}")
     # Aplicamos la misma lógica de ingeniería de características que tenías en predecir_precio_barco
     CURRENT_YEAR = 2026
     df_nuevo['boat_age'] = CURRENT_YEAR - df_nuevo['year']

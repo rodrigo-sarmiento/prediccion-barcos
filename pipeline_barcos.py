@@ -31,25 +31,33 @@ df_clean = df[(df['price'] >= q_low) & (df['price'] <= q_high)].copy()
 # 2. INGENIERÍA DE CARACTERÍSTICAS
 # ==========================================
 CURRENT_YEAR = 2026
+
+# Unificamos el año del motor usando maxEngineYear (o el año del barco si fuera nulo)
+df_clean['engine_year'] = df_clean['maxEngineYear'].fillna(df_clean['year'])
+
+# Variables derivadas de antigüedad
 df_clean['boat_age'] = CURRENT_YEAR - df_clean['year']
-df_clean['engine_age_diff'] = df_clean['maxEngineYear'].apply(
-    lambda x: CURRENT_YEAR - x if pd.notnull(x) else np.nan
-)
+df_clean['engine_age_diff'] = CURRENT_YEAR - df_clean['engine_year']
 
-# Definición de variables
+# Definición de variables a descartar (agregamos maxEngineYear y minEngineYear)
 target = 'price'
-drop_cols = ['id', 'sellerId', 'zip', 'created_date', 'created_month', 'created_year', target]
+drop_cols = [
+    'id', 'sellerId', 'zip', 'created_date', 'created_month', 'created_year', 
+    'maxEngineYear', 'minEngineYear', target
+]
 
-X = df_clean.drop(columns=drop_cols)
+X = df_clean.drop(columns=[col for col in drop_cols if col in df_clean.columns])
 y = df_clean[target]
 
-# Grupos de columnas por tipo y cardinalidad
-num_cols = ['year', 'length_ft', 'beam_ft', 'dryWeight_lb', 'numEngines', 
-            'totalHP', 'maxEngineYear', 'minEngineYear', 'boat_age', 'engine_age_diff']
+# Lista de columnas numéricas (ahora con un solo 'engine_year')
+num_cols = [
+    'year', 'length_ft', 'beam_ft', 'dryWeight_lb', 'numEngines', 
+    'totalHP', 'engine_year', 'boat_age', 'engine_age_diff'
+]
 
+# Ubicación (city, state) y otras categorías siguen igual
 low_card_cat = ['type', 'condition', 'hullMaterial', 'fuelType', 'engineCategory']
 high_card_cat = ['boatClass', 'make', 'model', 'city', 'state']
-
 # ==========================================
 # 3. DIVISIÓN DE DATOS (TRAIN / TEST)
 # ==========================================
@@ -158,21 +166,14 @@ plt.show()
 # 7. FUNCIÓN DE INFERENCIA
 # ==========================================
 def predecir_precio_barco(datos_nuevo_barco_dict, modelo_entrenado):
-    """
-    Toma un diccionario con los datos de un barco y devuelve el precio estimado.
-    """
     df_nuevo = pd.DataFrame([datos_nuevo_barco_dict])
     
-    # Aplicar transformaciones de características derivadas
+    # Transformaciones con el único dato de año de motor
     df_nuevo['boat_age'] = CURRENT_YEAR - df_nuevo['year']
-    if 'maxEngineYear' in df_nuevo.columns and pd.notnull(df_nuevo['maxEngineYear'].iloc[0]):
-        df_nuevo['engine_age_diff'] = CURRENT_YEAR - df_nuevo['maxEngineYear']
-    else:
-        df_nuevo['engine_age_diff'] = np.nan
+    df_nuevo['engine_age_diff'] = CURRENT_YEAR - df_nuevo['engine_year']
 
     precio_estimado = modelo_entrenado.predict(df_nuevo)[0]
     return precio_estimado
-
 # Ejemplo de uso de la función de inferencia
 nuevo_barco = {
     'type': 'power',
@@ -188,8 +189,7 @@ nuevo_barco = {
     'fuelType': 'gasoline',
     'numEngines': 1,
     'totalHP': 200.0,
-    'maxEngineYear': 2020.0,
-    'minEngineYear': 2020.0,
+    'engine_year': 2020.0,
     'engineCategory': 'outboard-4s',
     'city': 'Miami',
     'state': 'FL'
